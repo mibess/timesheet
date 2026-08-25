@@ -7,7 +7,7 @@ import threading
 import tkinter as tk
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox, ttk
 from typing import Any, Callable
 
 from .config import (
@@ -17,7 +17,6 @@ from .config import (
     configure_logging,
     default_workbook_path,
     load_settings,
-    save_user_config,
 )
 from .database import DatabaseError, TimesheetDatabase
 from .models import TimeEntry, WorkbookMetadata
@@ -71,6 +70,7 @@ class TimesheetApp(tk.Tk):
         self.database = TimesheetDatabase()
         self.synchronizer = TimesheetSync(self.database)
         self.update_client = UpdateClient(APP_VERSION)
+        self.workbook_path = default_workbook_path()
         self.metadata = WorkbookMetadata()
         self._active_workbook_path: str | None = None
         self.dirty = False
@@ -292,7 +292,6 @@ class TimesheetApp(tk.Tk):
         )
 
     def _create_variables(self) -> None:
-        self.path_var = tk.StringVar(value=str(default_workbook_path()))
         self.date_var = tk.StringVar(value=format_br_date(date.today()))
         self.hours_var = tk.StringVar(value="07:30")
         self.activity_var = tk.StringVar(value=self.settings.default_activity_type)
@@ -416,41 +415,8 @@ class TimesheetApp(tk.Tk):
         card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
         card.grid_columnconfigure(0, weight=1)
 
-        path_block = tk.Frame(card, background=COLORS["card"])
-        path_block.grid(row=0, column=0, sticky="ew", padx=(18, 12), pady=14)
-        path_block.grid_columnconfigure(0, weight=1)
-        self._field_label(path_block, "Planilha de trabalho").grid(
-            row=0, column=0, columnspan=4, sticky="w", pady=(0, 5)
-        )
-        self.path_entry = ttk.Entry(path_block, textvariable=self.path_var)
-        self.path_entry.grid(row=1, column=0, sticky="ew")
-        self.browse_button = ttk.Button(
-            path_block,
-            text="Selecionar…",
-            style="Secondary.TButton",
-            command=self._browse_workbook,
-        )
-        self.browse_button.grid(row=1, column=1, padx=(8, 0))
-        self.open_button = ttk.Button(
-            path_block,
-            text="Abrir",
-            style="Ghost.TButton",
-            command=self._open_workbook,
-        )
-        self.open_button.grid(row=1, column=2, padx=(4, 0))
-        self.sync_button = ttk.Button(
-            path_block,
-            text="Sincronizar",
-            style="Secondary.TButton",
-            command=self._synchronize,
-        )
-        self.sync_button.grid(row=1, column=3, padx=(4, 0))
-
-        divider = tk.Frame(card, background=COLORS["border"], width=1)
-        divider.grid(row=0, column=1, sticky="ns", pady=14)
-
         date_block = tk.Frame(card, background=COLORS["card"])
-        date_block.grid(row=0, column=2, padx=18, pady=14)
+        date_block.grid(row=0, column=0, sticky="w", padx=18, pady=14)
         self._field_label(date_block, "Data do apontamento").grid(
             row=0, column=0, columnspan=5, sticky="w", pady=(0, 5)
         )
@@ -488,6 +454,26 @@ class TimesheetApp(tk.Tk):
             command=self._load_selected_day,
         )
         self.load_button.grid(row=1, column=4, padx=(4, 0))
+
+        actions_block = tk.Frame(card, background=COLORS["card"])
+        actions_block.grid(row=0, column=1, sticky="e", padx=18, pady=14)
+        self._field_label(actions_block, "Arquivo do timesheet").grid(
+            row=0, column=0, columnspan=2, sticky="e", pady=(0, 5)
+        )
+        self.open_button = ttk.Button(
+            actions_block,
+            text="Abrir arquivo",
+            style="Ghost.TButton",
+            command=self._open_workbook,
+        )
+        self.open_button.grid(row=1, column=0)
+        self.sync_button = ttk.Button(
+            actions_block,
+            text="Sincronizar",
+            style="Secondary.TButton",
+            command=self._synchronize,
+        )
+        self.sync_button.grid(row=1, column=1, padx=(4, 0))
 
     def _build_entry_card(self, parent: tk.Widget) -> None:
         card = self._card(parent)
@@ -940,10 +926,10 @@ class TimesheetApp(tk.Tk):
         return parse_br_date(self.date_var.get())
 
     def _startup(self) -> None:
-        if Path(self.path_var.get()).is_file():
+        if self.workbook_path.is_file():
             self._activate_selected_workbook()
         else:
-            self._set_status("Selecione uma planilha do Timesheet CCEE.", "warning")
+            self._set_status("O arquivo do Timesheet CCEE não foi encontrado.", "warning")
         self.hours_entry.focus_set()
         self.hours_entry.selection_range(0, tk.END)
         self.after(400, self._show_update_result)
@@ -1087,28 +1073,12 @@ class TimesheetApp(tk.Tk):
             parent=self,
         )
 
-    def _browse_workbook(self) -> None:
-        if not self._confirm_discard():
-            return
-        current = Path(self.path_var.get()).expanduser()
-        selected = filedialog.askopenfilename(
-            title="Selecione a planilha do Timesheet CCEE",
-            initialdir=str(current.parent if current.parent.exists() else Path.home()),
-            filetypes=(
-                ("Planilhas do Excel", "*.xlsx *.xlsm"),
-                ("Todos os arquivos", "*.*"),
-            ),
-        )
-        if selected:
-            self.path_var.set(selected)
-            self._load_selected_day(skip_confirm=True)
-
     def _open_workbook(self) -> None:
-        path = Path(self.path_var.get()).expanduser()
+        path = self.workbook_path
         if not path.is_file():
             messagebox.showwarning(
                 "Planilha não encontrada",
-                "Selecione uma planilha válida antes de abrir.",
+                "O arquivo fixo do Timesheet CCEE não foi encontrado.",
                 parent=self,
             )
             return
@@ -1144,7 +1114,7 @@ class TimesheetApp(tk.Tk):
             return
         try:
             selected_date = self._selected_date()
-            workbook = TimesheetWorkbook(self.path_var.get())
+            workbook = TimesheetWorkbook(self.workbook_path)
         except (ValueError, TimesheetError) as exc:
             self._handle_load_error(exc)
             return
@@ -1169,7 +1139,7 @@ class TimesheetApp(tk.Tk):
             return
         try:
             selected_date = self._selected_date()
-            workbook = TimesheetWorkbook(self.path_var.get())
+            workbook = TimesheetWorkbook(self.workbook_path)
         except (ValueError, TimesheetError) as exc:
             self._handle_load_error(exc)
             return
@@ -1252,8 +1222,6 @@ class TimesheetApp(tk.Tk):
         self._populate_combos()
         self._stored_day_has_entries = bool(entries)
         self._replace_entries(entries)
-        save_user_config(workbook_path=str(workbook.path))
-        self.path_var.set(str(workbook.path))
         self._set_dirty(False)
         self._clear_undo()
         self._show_action_confirmation(self.load_button, "✓ Carregado")
@@ -1633,7 +1601,7 @@ class TimesheetApp(tk.Tk):
         return selected_date, entries, removed_zero_count
 
     def _active_workbook(self) -> TimesheetWorkbook:
-        workbook = TimesheetWorkbook(self.path_var.get())
+        workbook = TimesheetWorkbook(self.workbook_path)
         if (
             self._active_workbook_path != str(workbook.path)
             or not self.database.contains(workbook.path)
@@ -1656,7 +1624,6 @@ class TimesheetApp(tk.Tk):
             self._handle_save_error(exc)
             return
 
-        save_user_config(workbook_path=str(workbook.path))
         if removed_zero_count:
             self._replace_entries(entries)
         self.metadata = self.database.load_metadata(workbook.path)

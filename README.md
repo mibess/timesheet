@@ -53,7 +53,7 @@ O arquivo `INICIAR_TIMESHEET.cmd` permanece como alternativa para diagnóstico, 
 
 ## Usar o aplicativo
 
-1. Selecione a planilha do timesheet. Na primeira execução, uma cópia limpa de `Modelo_Timesheet_CCEE.template.xlsx` é criada automaticamente na pasta de dados do usuário.
+1. O aplicativo usa sempre o arquivo `Modelo_Timesheet_CCEE.xlsx` localizado na mesma pasta da aplicação. Se ele não existir na primeira execução, uma cópia limpa de `Modelo_Timesheet_CCEE.template.xlsx` é criada automaticamente nesse local.
 2. Escolha a data e clique em **Carregar dia**.
    Use **Hoje** para retornar rapidamente à data atual.
 3. Adicione atividades pelo formulário ou pelos atalhos.
@@ -68,11 +68,13 @@ Atalhos de teclado: `Ctrl+Enter`/`⌘+Enter` adiciona a atividade, `Ctrl+S`/`⌘
 
 ## Como funciona a sincronização
 
-No primeiro uso de cada planilha, todos os apontamentos e listas auxiliares são importados para o banco local. A partir daí, o banco passa a ser a fonte principal dos dados e a navegação entre datas não precisa mais abrir o arquivo Excel.
+No primeiro uso do arquivo fixo, todos os apontamentos e listas auxiliares são importados para o banco local. A partir daí, o banco passa a ser a fonte principal dos dados e a navegação entre datas não precisa mais abrir o arquivo Excel.
 
 A sincronização exporta o estado completo do banco para a planilha. Se nada mudou desde a última sincronização, o arquivo não é regravado. Caso a planilha seja alterada fora do aplicativo, a diferença é detectada e, na próxima sincronização, o conteúdo vigente do banco substitui os apontamentos do arquivo; a versão externa anterior fica preservada em backup.
 
 ## Banco local, backups e logs
+
+A planilha fica na pasta da aplicação, sempre com o nome `Modelo_Timesheet_CCEE.xlsx`.
 
 O banco é criado automaticamente em:
 
@@ -126,7 +128,7 @@ O endereço estável `releases/latest/download/update.json` passa a apontar para
 - Cada download é comparado ao SHA-256 publicado no manifesto e o ZIP é validado antes da instalação.
 - Pacotes com caminhos inseguros, links simbólicos, aplicativo diferente ou versão divergente são recusados.
 - `settings.json`, `Modelo_Timesheet_CCEE.xlsx`, `.venv` e `backups-timesheet` existentes não são substituídos.
-- O arquivo versionado `Modelo_Timesheet_CCEE.template.xlsx` não contém apontamentos nem autoria pessoal; ele serve apenas para criar novas planilhas de trabalho.
+- O arquivo versionado `Modelo_Timesheet_CCEE.template.xlsx` não contém apontamentos nem autoria pessoal; ele serve apenas para criar o arquivo fixo de trabalho.
 - O banco SQLite e os logs ficam fora da pasta do aplicativo e não são afetados.
 - Antes da troca dos arquivos, alterações abertas são salvas no banco e a planilha é sincronizada.
 - Os arquivos anteriores são copiados para a pasta de dados do usuário, dentro de `updates`, permitindo diagnóstico e recuperação em caso de falha.

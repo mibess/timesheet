@@ -8,7 +8,6 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from . import __version__
 
@@ -44,6 +43,10 @@ def resource_path(filename: str) -> Path:
     if bundle_dir:
         return Path(bundle_dir) / filename
     return Path(__file__).resolve().parent.parent / filename
+
+
+def application_dir() -> Path:
+    return Path(__file__).resolve().parent.parent
 
 
 def user_data_dir() -> Path:
@@ -85,31 +88,9 @@ def load_settings() -> AppSettings:
     )
 
 
-def load_user_config() -> dict[str, Any]:
-    path = user_data_dir() / "user-config.json"
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-
-def save_user_config(*, workbook_path: str) -> None:
-    directory = user_data_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    path = directory / "user-config.json"
-    path.write_text(
-        json.dumps({"workbookPath": workbook_path}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
 def default_workbook_path() -> Path:
-    configured = str(load_user_config().get("workbookPath", "")).strip()
-    if configured and Path(configured).is_file():
-        return Path(configured)
     template = resource_path("Modelo_Timesheet_CCEE.template.xlsx")
-    destination = user_data_dir() / "Modelo_Timesheet_CCEE.xlsx"
+    destination = application_dir() / "Modelo_Timesheet_CCEE.xlsx"
     if not destination.exists() and template.is_file():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(template, destination)
