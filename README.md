@@ -1,6 +1,6 @@
 # Timesheet CCEE 2.2
 
-Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Windows. Requer Python 3.9 ou mais recente. A versão 2.2 usa um banco SQLite local para trabalhar com rapidez e mantém o arquivo `.xlsx` ou `.xlsm` atualizado por sincronização. Não depende de PowerShell, automação COM nem de uma instalação do Microsoft Excel.
+Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Windows. Requer Python 3.10 ou mais recente. A versão 2.2 usa um banco SQLite local para trabalhar com rapidez e mantém o arquivo `.xlsx` ou `.xlsm` atualizado por sincronização. Não depende de PowerShell, automação COM nem de uma instalação do Microsoft Excel.
 
 ## Recursos
 
@@ -26,9 +26,12 @@ Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Wi
 
 ## Abrir no macOS
 
-1. Dê duplo clique em `Abrir Timesheet.app` para iniciar sem uma janela do Terminal.
-2. Na primeira execução, o aplicativo cria um ambiente `.venv` e instala o `openpyxl`.
-3. Se o macOS bloquear o aplicativo, clique nele com o botão direito, escolha **Abrir** e confirme.
+1. Instale o [Python 3.10 ou mais recente](https://www.python.org/downloads/macos/).
+2. Dê duplo clique em `Abrir Timesheet.app` para iniciar sem uma janela do Terminal.
+3. Na primeira execução, o aplicativo cria um ambiente `.venv` e instala o `openpyxl`.
+4. Se o macOS bloquear o aplicativo, clique nele com o botão direito, escolha **Abrir** e confirme.
+
+Se a pasta `.venv` tiver sido criada anteriormente com Python 3.9, remova essa pasta após atualizar o Python e abra o aplicativo novamente.
 
 O arquivo `INICIAR_TIMESHEET.command` permanece como alternativa para diagnóstico, pois exibe no Terminal eventuais mensagens de instalação ou execução.
 
@@ -42,7 +45,7 @@ python3 -m venv .venv
 
 ## Abrir no Windows
 
-1. Instale o [Python 3.9 ou mais recente](https://www.python.org/downloads/) e marque **Add Python to PATH** durante a instalação.
+1. Instale o [Python 3.10 ou mais recente](https://www.python.org/downloads/) e marque **Add Python to PATH** durante a instalação.
 2. Dê duplo clique em `Abrir Timesheet.vbs` para iniciar sem uma janela do Prompt de Comando.
 3. Na primeira execução, o ambiente e a dependência são preparados automaticamente.
 

@@ -3,27 +3,35 @@
 set -u
 cd "$(dirname "$0")" || exit 1
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "Python 3 não foi encontrado. Instale-o em https://www.python.org/downloads/"
-  read -r "?Pressione Enter para fechar."
-  exit 1
-fi
+TIMESHEET_PYTHON=""
+for candidate in \
+  /Library/Frameworks/Python.framework/Versions/Current/bin/python3 \
+  /opt/homebrew/bin/python3 \
+  /usr/local/bin/python3 \
+  python3
+do
+  if command -v "$candidate" >/dev/null 2>&1 && \
+    "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+    TIMESHEET_PYTHON="$candidate"
+    break
+  fi
+done
 
-if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
-  echo "O Timesheet CCEE requer Python 3.9 ou mais recente."
-  echo "Atualize o Python em https://www.python.org/downloads/"
+if [ -z "$TIMESHEET_PYTHON" ]; then
+  echo "O Timesheet CCEE requer Python 3.10 ou mais recente."
+  echo "Instale ou atualize o Python em https://www.python.org/downloads/macos/"
   read -r "?Pressione Enter para fechar."
   exit 1
 fi
 
 if [ ! -x ".venv/bin/python" ]; then
   echo "Preparando o ambiente do Timesheet CCEE…"
-  python3 -m venv .venv || exit 1
+  "$TIMESHEET_PYTHON" -m venv .venv || exit 1
 fi
 
-if ! .venv/bin/python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+if ! .venv/bin/python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
   echo "O ambiente .venv usa uma versão antiga do Python."
-  echo "Remova a pasta .venv e abra novamente após instalar o Python 3.9 ou mais recente."
+  echo "Remova a pasta .venv e abra novamente após instalar o Python 3.10 ou mais recente."
   read -r "?Pressione Enter para fechar."
   exit 1
 fi

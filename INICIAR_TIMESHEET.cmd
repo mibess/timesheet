@@ -6,6 +6,8 @@ if not exist ".venv\Scripts\python.exe" (
   echo Preparando o ambiente do Timesheet CCEE...
   where py.exe >nul 2>&1
   if not errorlevel 1 (
+    py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+    if errorlevel 1 goto python_incompativel
     py -3 -m venv .venv
   ) else (
     where python.exe >nul 2>&1
@@ -15,6 +17,8 @@ if not exist ".venv\Scripts\python.exe" (
       if not defined TIMESHEET_SILENT pause
       exit /b 1
     )
+    python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+    if errorlevel 1 goto python_incompativel
     python -m venv .venv
   )
   if errorlevel 1 (
@@ -24,13 +28,23 @@ if not exist ".venv\Scripts\python.exe" (
   )
 )
 
-".venv\Scripts\python.exe" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" >nul 2>&1
+".venv\Scripts\python.exe" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
 if errorlevel 1 (
-  echo O Timesheet CCEE requer Python 3.9 ou mais recente.
-  echo Se necessario, remova a pasta .venv e instale uma versao atual em https://www.python.org/downloads/
+  echo O ambiente .venv usa uma versao antiga do Python.
+  echo Remova a pasta .venv e abra novamente apos instalar o Python 3.10 ou mais recente.
   if not defined TIMESHEET_SILENT pause
   exit /b 1
 )
+
+goto python_compativel
+
+:python_incompativel
+  echo O Timesheet CCEE requer Python 3.10 ou mais recente.
+  echo Se necessario, remova a pasta .venv e instale uma versao atual em https://www.python.org/downloads/
+  if not defined TIMESHEET_SILENT pause
+  exit /b 1
+
+:python_compativel
 
 ".venv\Scripts\python.exe" -c "import hashlib,pathlib; r=pathlib.Path('requirements.txt').read_bytes(); m=pathlib.Path('.venv/.timesheet-requirements'); raise SystemExit(0 if m.is_file() and m.read_text() == hashlib.sha256(r).hexdigest() else 1)" >nul 2>&1
 if errorlevel 1 (
