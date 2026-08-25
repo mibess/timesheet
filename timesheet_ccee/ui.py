@@ -17,6 +17,7 @@ from .config import (
     configure_logging,
     default_workbook_path,
     load_settings,
+    resource_path,
 )
 from .database import DatabaseError, TimesheetDatabase
 from .models import TimeEntry, WorkbookMetadata
@@ -363,6 +364,10 @@ class TimesheetApp(tk.Tk):
         actions_menu.add_command(
             label="Calcular horas",
             command=self._calculate_hours,
+        )
+        actions_menu.add_command(
+            label="Limpar Dados",
+            command=self._reset_all_data,
         )
         actions_menu.add_separator()
         actions_menu.add_command(
@@ -1683,6 +1688,61 @@ class TimesheetApp(tk.Tk):
 
     def _synchronize(self) -> None:
         self._synchronize_workbook(close_after=False, save_pending=True)
+
+    def _reset_all_data(self) -> None:
+        if self._operation_active:
+            return
+        if not messagebox.askyesno(
+            "Limpar todos os dados",
+            "Todos os dados do banco local e da planilha serão apagados.\n\n"
+            "Uma nova planilha zerada será criada e a planilha atual ficará "
+            "preservada em backup. Esta ação não pode ser desfeita pelo aplicativo.\n\n"
+            "Deseja continuar?",
+            icon="warning",
+            parent=self,
+        ):
+            return
+
+        try:
+            workbook = self._active_workbook()
+            selected_date = self._selected_date()
+            template_path = resource_path("Modelo_Timesheet_CCEE.template.xlsx")
+        except (ValueError, TimesheetError, DatabaseError) as exc:
+            self._handle_load_error(exc)
+            return
+
+        def reset() -> tuple[SyncOutcome, WorkbookMetadata]:
+            outcome = self.synchronizer.reset(workbook, template_path)
+            return outcome, self.database.load_metadata(workbook.path)
+
+        def reset_finished(payload: tuple[SyncOutcome, WorkbookMetadata]) -> None:
+            outcome, metadata = payload
+            self.metadata = metadata
+            self._populate_combos()
+            self._stored_day_has_entries = False
+            self._replace_entries([])
+            self._set_dirty(False)
+            self._clear_undo()
+            self._remember_sync_backup(outcome)
+            self._set_status(
+                "Todos os dados foram apagados e uma nova planilha foi criada."
+            )
+            messagebox.showinfo(
+                "Dados limpos",
+                f"O banco de dados foi limpo e uma nova planilha zerada foi criada.\n\n"
+                f"Data exibida: {format_br_date(selected_date)}.\n"
+                "A planilha anterior está disponível em Ver backup.",
+                parent=self,
+            )
+
+        self._run_async(
+            message="Limpando dados e criando uma nova planilha…",
+            button=self.actions_menu_button,
+            button_text="Limpando…",
+            task=reset,
+            on_success=reset_finished,
+            on_error=self._handle_sync_error,
+        )
 
     def _synchronize_workbook(
         self, *, close_after: bool, save_pending: bool

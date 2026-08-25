@@ -175,6 +175,41 @@ class TimesheetWorkbook:
         finally:
             workbook.close()
 
+    def replace_with_template(self, template_path: str | Path) -> SaveResult:
+        """Substitui a planilha pelo modelo zerado e preserva a anterior em backup."""
+        self.validate()
+        self._check_file_access(self.path)
+        template = TimesheetWorkbook(template_path)
+        template.validate()
+
+        backup_dir = self.path.parent / "backups-timesheet"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        backup_path = backup_dir / (
+            f"{self.path.stem}_backup_{timestamp}{self.path.suffix}"
+        )
+        shutil.copy2(self.path, backup_path)
+
+        descriptor, temp_name = tempfile.mkstemp(
+            prefix=f".{self.path.stem}_reset_",
+            suffix=self.path.suffix,
+            dir=self.path.parent,
+        )
+        os.close(descriptor)
+        temp_path = Path(temp_name)
+        try:
+            shutil.copy2(template.path, temp_path)
+            TimesheetWorkbook(temp_path).validate()
+            os.replace(temp_path, self.path)
+            return SaveResult(str(backup_path), 0)
+        except Exception as exc:
+            raise TimesheetError(
+                "Não foi possível criar uma nova planilha zerada. "
+                "A planilha anterior foi preservada."
+            ) from exc
+        finally:
+            temp_path.unlink(missing_ok=True)
+
     def load_metadata(self) -> WorkbookMetadata:
         self.validate()
         workbook = _load_excel(

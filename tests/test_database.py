@@ -137,6 +137,27 @@ class TimesheetDatabaseTests(unittest.TestCase):
             (570, 3),
         )
 
+    def test_resets_workbook_data_and_metadata(self) -> None:
+        self.database.import_workbook(
+            self.workbook_path,
+            self.metadata,
+            [(date(2026, 8, 25), TimeEntry("01:00", "ADM", "Reuniões", "100"))],
+        )
+        reset_metadata = WorkbookMetadata(
+            activity_types=["Nova atividade"],
+            ticket_types=["Novo ticket"],
+            phases=["Nova fase"],
+            recent_numbers=[],
+        )
+
+        self.database.reset_workbook(self.workbook_path, reset_metadata)
+
+        self.assertEqual(self.database.load_all_entries(self.workbook_path), [])
+        self.assertEqual(
+            self.database.load_metadata(self.workbook_path), reset_metadata
+        )
+        self.assertFalse(self.database.needs_sync(self.workbook_path))
+
 
 if __name__ == "__main__":
     unittest.main()

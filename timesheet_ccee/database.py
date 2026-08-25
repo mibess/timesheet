@@ -493,3 +493,48 @@ class TimesheetDatabase:
             raise DatabaseError(
                 "A planilha foi atualizada, mas o estado da sincronização não pôde ser salvo."
             ) from exc
+
+    def reset_workbook(
+        self, workbook_path: str | Path, metadata: WorkbookMetadata
+    ) -> None:
+        """Remove todos os registros e reinicia os metadados da planilha."""
+        key = self._workbook_key(workbook_path)
+        mtime_ns, file_size = self._fingerprint(key)
+        now = self._now()
+        try:
+            with closing(self._connect()) as connection:
+                with connection:
+                    workbook_id = self._workbook_id(connection, key)
+                    connection.execute(
+                        "DELETE FROM entries WHERE workbook_id = ?", (workbook_id,)
+                    )
+                    cursor = connection.execute(
+                        """
+                        UPDATE workbooks
+                        SET activity_types_json = ?, ticket_types_json = ?,
+                            phases_json = ?, recent_numbers_json = '[]',
+                            revision = revision + 1,
+                            synced_revision = revision + 1,
+                            file_mtime_ns = ?, file_size = ?, updated_at = ?,
+                            last_synced_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            json.dumps(metadata.activity_types, ensure_ascii=False),
+                            json.dumps(metadata.ticket_types, ensure_ascii=False),
+                            json.dumps(metadata.phases, ensure_ascii=False),
+                            mtime_ns,
+                            file_size,
+                            now,
+                            now,
+                            workbook_id,
+                        ),
+                    )
+                    if cursor.rowcount != 1:
+                        raise DatabaseError(
+                            "A planilha ainda não foi importada para o banco local."
+                        )
+        except sqlite3.Error as exc:
+            raise DatabaseError(
+                "Não foi possível limpar o banco de dados local."
+            ) from exc

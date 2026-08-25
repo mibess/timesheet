@@ -18,6 +18,31 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class TimesheetSyncTests(unittest.TestCase):
+    def test_reset_replaces_workbook_and_clears_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            workbook_path = root / "timesheet.xlsx"
+            template_path = PROJECT_ROOT / "Modelo_Timesheet_CCEE.template.xlsx"
+            shutil.copy2(template_path, workbook_path)
+            database = TimesheetDatabase(root / "timesheet.sqlite3")
+            synchronizer = TimesheetSync(database)
+            workbook = TimesheetWorkbook(workbook_path)
+            synchronizer.activate(workbook)
+            database.save_day(
+                workbook_path,
+                date(2099, 1, 2),
+                [TimeEntry("01:00", "Sustentação", "CSTM", "123")],
+            )
+
+            outcome = synchronizer.reset(workbook, template_path)
+
+            self.assertTrue(outcome.synchronized)
+            self.assertEqual(outcome.record_count, 0)
+            self.assertTrue(Path(outcome.backup_path).is_file())
+            self.assertEqual(database.load_all_entries(workbook_path), [])
+            self.assertEqual(workbook.load_dataset()[1], [])
+            self.assertFalse(database.needs_sync(workbook_path))
+
     def test_exports_empty_number_as_null_cell(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             workbook_path = Path(temporary_directory) / "timesheet.xlsx"
