@@ -7,6 +7,7 @@ import os
 import platform
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import time
@@ -16,6 +17,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, Callable
+
+import certifi
 
 from .config import APP_NAME, resource_path, user_data_dir
 
@@ -148,7 +151,23 @@ def _open_url(url: str, *, timeout: int = NETWORK_TIMEOUT) -> Any:
             "User-Agent": f"{APP_NAME.replace(' ', '-')}-Updater",
         },
     )
-    return urllib.request.urlopen(request, timeout=timeout)
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    return urllib.request.urlopen(request, timeout=timeout, context=ssl_context)
+
+
+def _connection_error_message(exc: BaseException, *, downloading: bool) -> str:
+    reason = getattr(exc, "reason", None)
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return (
+            "Não foi possível validar a conexão segura com o servidor de "
+            "atualizações. Verifique a data e a hora do computador."
+        )
+    if downloading:
+        return "Não foi possível baixar a atualização. Verifique sua conexão."
+    return (
+        "Não foi possível acessar o servidor de atualizações. "
+        "Verifique sua conexão com a internet."
+    )
 
 
 class UpdateClient:
@@ -212,10 +231,7 @@ class UpdateClient:
         except UpdateError:
             raise
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
-            raise UpdateError(
-                "Não foi possível acessar o servidor de atualizações. "
-                "Verifique sua conexão com a internet."
-            ) from exc
+            raise UpdateError(_connection_error_message(exc, downloading=False)) from exc
         except (UnicodeDecodeError, json.JSONDecodeError, OSError) as exc:
             raise UpdateError("O servidor retornou um manifesto inválido.") from exc
 
@@ -297,9 +313,7 @@ class UpdateClient:
             raise
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
             partial.unlink(missing_ok=True)
-            raise UpdateError(
-                "Não foi possível baixar a atualização. Verifique sua conexão."
-            ) from exc
+            raise UpdateError(_connection_error_message(exc, downloading=True)) from exc
         except (OSError, ValueError, zipfile.BadZipFile) as exc:
             partial.unlink(missing_ok=True)
             raise UpdateError("Não foi possível salvar o pacote de atualização.") from exc

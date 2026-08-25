@@ -3,10 +3,13 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import ssl
 import tempfile
 import unittest
+import urllib.error
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from timesheet_ccee.config import APP_NAME
 from timesheet_ccee.updater import (
@@ -15,6 +18,8 @@ from timesheet_ccee.updater import (
     UpdateInfo,
     UpdatePackage,
     Version,
+    _connection_error_message,
+    _open_url,
     install_update,
 )
 
@@ -32,6 +37,32 @@ class MemoryResponse(io.BytesIO):
 
 
 class TimesheetUpdaterTests(unittest.TestCase):
+    def test_opens_https_with_the_certifi_certificate_bundle(self) -> None:
+        response = object()
+        ssl_context = object()
+        with patch(
+            "timesheet_ccee.updater.ssl.create_default_context",
+            return_value=ssl_context,
+        ) as create_context, patch(
+            "timesheet_ccee.updater.urllib.request.urlopen",
+            return_value=response,
+        ) as urlopen:
+            result = _open_url("https://example.test/update.json", timeout=7)
+
+        self.assertIs(result, response)
+        create_context.assert_called_once()
+        self.assertTrue(create_context.call_args.kwargs["cafile"].endswith("cacert.pem"))
+        self.assertIs(urlopen.call_args.kwargs["context"], ssl_context)
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 7)
+
+    def test_explains_a_certificate_validation_failure(self) -> None:
+        certificate_error = ssl.SSLCertVerificationError("invalid certificate")
+        network_error = urllib.error.URLError(certificate_error)
+
+        message = _connection_error_message(network_error, downloading=False)
+
+        self.assertIn("conexão segura", message)
+
     def test_compares_stable_and_prerelease_versions(self) -> None:
         self.assertLess(Version.parse("2.1.9"), Version.parse("2.2.0"))
         self.assertLess(Version.parse("v2.2.0-beta.2"), Version.parse("2.2.0"))

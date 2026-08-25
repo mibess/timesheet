@@ -28,7 +28,7 @@ Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Wi
 
 1. Instale o [Python 3.10 ou mais recente](https://www.python.org/downloads/macos/).
 2. Dê duplo clique em `Abrir Timesheet.app` para iniciar sem uma janela do Terminal.
-3. Na primeira execução, o aplicativo cria um ambiente `.venv` e instala o `openpyxl`.
+3. Na primeira execução, o aplicativo cria um ambiente `.venv` e instala as dependências necessárias, incluindo os certificados HTTPS usados nas atualizações.
 4. Se o macOS bloquear o aplicativo, clique nele com o botão direito, escolha **Abrir** e confirme.
 
 Se a pasta `.venv` tiver sido criada anteriormente com Python 3.9, remova essa pasta após atualizar o Python e abra o aplicativo novamente.
