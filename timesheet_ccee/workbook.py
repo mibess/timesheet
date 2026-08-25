@@ -372,7 +372,11 @@ class TimesheetWorkbook:
                 "e tente novamente."
             ) from exc
 
-    def save_all(self, entries: Iterable[tuple[date, TimeEntry]]) -> SaveResult:
+    def save_all(
+        self,
+        entries: Iterable[tuple[date, TimeEntry]],
+        metadata: WorkbookMetadata | None = None,
+    ) -> SaveResult:
         """Substitui os apontamentos da planilha pelo estado integral do banco."""
         self.validate()
         self._check_file_access(self.path)
@@ -427,6 +431,18 @@ class TimesheetWorkbook:
         temp_path: Path | None = None
         try:
             sheet = workbook[DATA_SHEET]
+            if metadata is not None:
+                list_sheet = workbook[LIST_SHEET]
+                list_columns = (
+                    (3, metadata.activity_types),
+                    (4, metadata.ticket_types),
+                    (5, metadata.phases),
+                )
+                for column, values in list_columns:
+                    for row in range(4, 21):
+                        list_sheet.cell(row, column).value = None
+                    for row, value in enumerate(values[:17], start=4):
+                        list_sheet.cell(row, column).value = value
             last_row = self._last_data_row(sheet)
             capacity = last_row - FIRST_DATA_ROW + 1
             if len(records) > capacity:

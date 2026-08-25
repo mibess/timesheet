@@ -7,7 +7,7 @@ import threading
 import tkinter as tk
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 from typing import Any, Callable
 
 from .config import (
@@ -368,6 +368,10 @@ class TimesheetApp(tk.Tk):
         actions_menu.add_command(
             label="Limpar Dados",
             command=self._reset_all_data,
+        )
+        actions_menu.add_command(
+            label="Importar Dados",
+            command=self._import_data,
         )
         actions_menu.add_separator()
         actions_menu.add_command(
@@ -1743,6 +1747,95 @@ class TimesheetApp(tk.Tk):
             on_success=reset_finished,
             on_error=self._handle_sync_error,
         )
+
+    def _import_data(self) -> None:
+        if self._operation_active:
+            return
+        if not messagebox.askyesno(
+            "Importar dados",
+            "Todos os dados atuais do banco local e da planilha serão apagados "
+            "e substituídos pelos dados do arquivo selecionado.\n\n"
+            "A planilha atual será preservada em backup. Esta ação não pode ser "
+            "desfeita pelo aplicativo.\n\nDeseja continuar?",
+            icon="warning",
+            parent=self,
+        ):
+            return
+
+        source_path = filedialog.askopenfilename(
+            title="Selecionar planilha de timesheet",
+            filetypes=(
+                ("Planilhas do Excel", "*.xlsx *.xlsm"),
+                ("Excel (.xlsx)", "*.xlsx"),
+                ("Excel com macros (.xlsm)", "*.xlsm"),
+            ),
+            parent=self,
+        )
+        if not source_path:
+            return
+
+        try:
+            workbook = self._active_workbook()
+            source = TimesheetWorkbook(source_path)
+            selected_date = self._selected_date()
+            if source.path == workbook.path:
+                raise TimesheetError(
+                    "Selecione uma planilha diferente da planilha atualmente em uso."
+                )
+        except (ValueError, TimesheetError, DatabaseError) as exc:
+            self._handle_load_error(exc)
+            return
+
+        def import_selected() -> tuple[
+            SyncOutcome, WorkbookMetadata, list[TimeEntry]
+        ]:
+            outcome = self.synchronizer.import_data(workbook, source)
+            metadata = self.database.load_metadata(workbook.path)
+            entries = self.database.load_day(workbook.path, selected_date)
+            return outcome, metadata, entries
+
+        def import_finished(
+            payload: tuple[SyncOutcome, WorkbookMetadata, list[TimeEntry]]
+        ) -> None:
+            outcome, metadata, entries = payload
+            self._show_loaded_day(workbook, selected_date, metadata, entries)
+            self._remember_sync_backup(outcome)
+            self._set_status(
+                f"Dados importados e planilha sincronizada · "
+                f"{outcome.record_count} registro(s)."
+            )
+            messagebox.showinfo(
+                "Importação concluída",
+                f"O arquivo foi validado e {outcome.record_count} registro(s) "
+                "foram importados.\n\nO banco local e a planilha estão "
+                "sincronizados. A versão anterior está disponível em Ver backup.",
+                parent=self,
+            )
+
+        self._run_async(
+            message="Validando e importando os dados…",
+            button=self.actions_menu_button,
+            button_text="Importando…",
+            task=import_selected,
+            on_success=import_finished,
+            on_error=self._handle_import_error,
+        )
+
+    def _handle_import_error(self, exc: Exception) -> None:
+        logging.error(
+            "Falha ao importar os dados",
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+        if isinstance(exc, (ValueError, TimesheetError, DatabaseError)):
+            self._set_status("Não foi possível importar os dados.", "error")
+            messagebox.showerror(
+                "Não foi possível importar",
+                f"{exc}\n\nNenhum dado é importado quando o arquivo não segue o "
+                "padrão do Timesheet CCEE.",
+                parent=self,
+            )
+        else:
+            self._show_unexpected_error(exc)
 
     def _synchronize_workbook(
         self, *, close_after: bool, save_pending: bool

@@ -194,6 +194,73 @@ class TimesheetDatabase:
                 "Não foi possível importar a planilha para o banco local."
             ) from exc
 
+    def replace_workbook(
+        self,
+        workbook_path: str | Path,
+        metadata: WorkbookMetadata,
+        entries: Iterable[tuple[date, TimeEntry]],
+    ) -> int:
+        """Substitui, em uma transação, todos os dados de uma planilha existente."""
+        key = self._workbook_key(workbook_path)
+        prepared = list(entries)
+        now = self._now()
+        try:
+            with closing(self._connect()) as connection:
+                with connection:
+                    workbook_id = self._workbook_id(connection, key)
+                    positions: dict[str, int] = {}
+                    rows = []
+                    for worked_date, entry in prepared:
+                        iso_date = worked_date.isoformat()
+                        position = positions.get(iso_date, 0) + 1
+                        positions[iso_date] = position
+                        rows.append(
+                            self._entry_row(
+                                workbook_id, iso_date, position, entry
+                            )
+                        )
+
+                    connection.execute(
+                        "DELETE FROM entries WHERE workbook_id = ?", (workbook_id,)
+                    )
+                    connection.executemany(
+                        """
+                        INSERT INTO entries (
+                            workbook_id, worked_date, position, minutes,
+                            activity_type, ticket, number, observation, phase
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        rows,
+                    )
+                    cursor = connection.execute(
+                        """
+                        UPDATE workbooks
+                        SET activity_types_json = ?, ticket_types_json = ?,
+                            phases_json = ?, recent_numbers_json = ?,
+                            revision = revision + 1, updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            json.dumps(metadata.activity_types, ensure_ascii=False),
+                            json.dumps(metadata.ticket_types, ensure_ascii=False),
+                            json.dumps(metadata.phases, ensure_ascii=False),
+                            json.dumps(metadata.recent_numbers, ensure_ascii=False),
+                            now,
+                            workbook_id,
+                        ),
+                    )
+                    if cursor.rowcount != 1:
+                        raise DatabaseError(
+                            "A planilha ainda não foi importada para o banco local."
+                        )
+            return len(prepared)
+        except ValueError as exc:
+            raise DatabaseError(str(exc)) from exc
+        except sqlite3.Error as exc:
+            raise DatabaseError(
+                "Não foi possível substituir os dados do banco local."
+            ) from exc
+
     @staticmethod
     def _entry_row(
         workbook_id: int,

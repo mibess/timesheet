@@ -158,6 +158,40 @@ class TimesheetDatabaseTests(unittest.TestCase):
         )
         self.assertFalse(self.database.needs_sync(self.workbook_path))
 
+    def test_replaces_all_workbook_data_and_metadata(self) -> None:
+        old_date = date(2026, 8, 24)
+        new_date = date(2026, 8, 25)
+        self.database.import_workbook(
+            self.workbook_path,
+            self.metadata,
+            [(old_date, TimeEntry("01:00", "ADM", "Reuniões"))],
+        )
+        replacement_metadata = WorkbookMetadata(
+            activity_types=["Nova atividade"],
+            ticket_types=["Novo ticket"],
+            phases=["Nova fase"],
+            recent_numbers=["999"],
+        )
+        replacement = TimeEntry(
+            "02:30", "Nova atividade", "Novo ticket", "999", phase="Nova fase"
+        )
+
+        count = self.database.replace_workbook(
+            self.workbook_path,
+            replacement_metadata,
+            [(new_date, replacement)],
+        )
+
+        self.assertEqual(count, 1)
+        self.assertEqual(self.database.load_day(self.workbook_path, old_date), [])
+        self.assertEqual(
+            self.database.load_day(self.workbook_path, new_date), [replacement]
+        )
+        self.assertEqual(
+            self.database.load_metadata(self.workbook_path), replacement_metadata
+        )
+        self.assertTrue(self.database.needs_sync(self.workbook_path))
+
 
 if __name__ == "__main__":
     unittest.main()

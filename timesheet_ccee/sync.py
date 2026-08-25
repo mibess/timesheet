@@ -53,6 +53,21 @@ class TimesheetSync:
             backup_path=result.backup_path,
         )
 
+    def import_data(
+        self, workbook: TimesheetWorkbook, source: TimesheetWorkbook
+    ) -> SyncOutcome:
+        """Valida uma planilha externa e substitui banco e planilha ativos."""
+        metadata, entries = source.load_dataset()
+        self.database.replace_workbook(workbook.path, metadata, entries)
+        result = workbook.save_all(entries, metadata=metadata)
+        self.database.mark_synced(workbook.path)
+        return SyncOutcome(
+            imported=True,
+            synchronized=True,
+            record_count=result.record_count,
+            backup_path=result.backup_path,
+        )
+
     def reset(
         self, workbook: TimesheetWorkbook, template_path: str | Path
     ) -> SyncOutcome:

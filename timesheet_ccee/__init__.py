@@ -1,3 +1,3 @@
 """Aplicação desktop multiplataforma para o Timesheet CCEE."""
 
-__version__ = "2.2.7"
+__version__ = "2.2.8"

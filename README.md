@@ -19,6 +19,8 @@ Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Wi
 - Menu **Opções > Calcular horas** para somar todos os apontamentos da planilha.
 - Menu **Opções > Limpar Dados** para apagar o banco local e recriar uma planilha
   zerada, sempre após confirmação e com backup da planilha anterior.
+- Menu **Opções > Importar Dados** para validar uma planilha `.xlsx` ou `.xlsm`,
+  substituir os dados locais e sincronizar a planilha fixa após confirmação.
 - Menu **Opções > Buscar Atualizações** com download, validação e instalação guiada.
 - Validação de datas, horários e campos obrigatórios.
 - Gravação atômica para reduzir o risco de arquivo incompleto.
