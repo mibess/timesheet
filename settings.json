@@ -1,0 +1,12 @@
+{
+  "defaultActivityType": "Sustentação",
+  "defaultTicket": "CSTM",
+  "defaultObservation": "Trabalhando nas atividades",
+  "expectedDailyHours": "08:00",
+  "presets": [
+    { "name": "Daily", "hours": "00:15" },
+    { "name": "Planning", "hours": "00:30" },
+    { "name": "Weekly", "hours": "00:30" },
+    { "name": "Chapter", "hours": "01:00" }
+  ]
+}

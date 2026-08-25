@@ -1,0 +1,52 @@
+# Ambientes virtuais locais
+.venv/
+.venv-*/
+venv/
+env/
+
+# Cache e artefatos do Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Builds e pacotes gerados
+build/
+dist/
+/Timesheet_CCEE_*.zip
+/update.json
+/release-info.json
+*.zip.part
+
+# Planilha de trabalho e dados locais
+# A versão limpa Modelo_Timesheet_CCEE.template.xlsx é versionada.
+/Modelo_Timesheet_CCEE.xlsx
+/backups-timesheet/
+*_backup_*.xlsx
+~$*.xlsx
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+/user-config.json
+
+# Segredos e configurações privadas de ambiente
+.env
+.env.*
+!.env.example
+
+# Arquivos do sistema operacional e editores
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos temporários do Codex
+.codex-work/
