@@ -1,6 +1,6 @@
 # Timesheet CCEE 2.2
 
-Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Windows. A versão 2.2 usa um banco SQLite local para trabalhar com rapidez e mantém o arquivo `.xlsx` ou `.xlsm` atualizado por sincronização. Não depende de PowerShell, automação COM nem de uma instalação do Microsoft Excel.
+Aplicação desktop Python para preencher o modelo de timesheet no macOS e no Windows. Requer Python 3.9 ou mais recente. A versão 2.2 usa um banco SQLite local para trabalhar com rapidez e mantém o arquivo `.xlsx` ou `.xlsm` atualizado por sincronização. Não depende de PowerShell, automação COM nem de uma instalação do Microsoft Excel.
 
 ## Recursos
 
@@ -42,7 +42,7 @@ python3 -m venv .venv
 
 ## Abrir no Windows
 
-1. Instale o [Python 3](https://www.python.org/downloads/) e marque **Add Python to PATH** durante a instalação.
+1. Instale o [Python 3.9 ou mais recente](https://www.python.org/downloads/) e marque **Add Python to PATH** durante a instalação.
 2. Dê duplo clique em `Abrir Timesheet.vbs` para iniciar sem uma janela do Prompt de Comando.
 3. Na primeira execução, o ambiente e a dependência são preparados automaticamente.
 

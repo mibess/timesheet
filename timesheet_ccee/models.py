@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass(slots=True)
+@dataclass
 class TimeEntry:
     hours: str
     activity_type: str
@@ -23,7 +23,7 @@ class TimeEntry:
         )
 
 
-@dataclass(slots=True)
+@dataclass
 class WorkbookMetadata:
     activity_types: list[str] = field(default_factory=list)
     ticket_types: list[str] = field(default_factory=list)
@@ -31,7 +31,7 @@ class WorkbookMetadata:
     recent_numbers: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
+@dataclass
 class SaveResult:
     backup_path: str
     record_count: int

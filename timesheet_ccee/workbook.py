@@ -44,7 +44,7 @@ class TimesheetError(RuntimeError):
     """Erro seguro para exibição na interface."""
 
 
-@dataclass(slots=True)
+@dataclass
 class _Record:
     worked_date: date
     hours_fraction: float

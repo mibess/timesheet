@@ -17,13 +17,13 @@ APP_NAME = "Timesheet CCEE"
 APP_VERSION = __version__
 
 
-@dataclass(slots=True)
+@dataclass
 class Preset:
     name: str
     hours: str
 
 
-@dataclass(slots=True)
+@dataclass
 class AppSettings:
     default_activity_type: str = "Sustentação"
     default_ticket: str = "CSTM"

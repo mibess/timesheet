@@ -6,7 +6,7 @@ from .database import TimesheetDatabase
 from .workbook import TimesheetWorkbook
 
 
-@dataclass(slots=True)
+@dataclass
 class SyncOutcome:
     imported: bool
     synchronized: bool

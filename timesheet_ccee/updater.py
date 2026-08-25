@@ -42,7 +42,7 @@ class UpdateError(RuntimeError):
     """Erro seguro e apresentável relacionado à atualização do aplicativo."""
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Version:
     major: int
     minor: int
@@ -91,14 +91,14 @@ class Version:
         return len(self.prerelease) < len(other.prerelease)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class UpdatePackage:
     url: str
     sha256: str
     size: int | None = None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class UpdateInfo:
     version: str
     notes: str
