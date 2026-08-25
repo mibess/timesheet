@@ -6,16 +6,42 @@ import unittest
 from datetime import date
 from pathlib import Path
 
+from openpyxl import load_workbook
+
 from timesheet_ccee.database import TimesheetDatabase
 from timesheet_ccee.models import TimeEntry
 from timesheet_ccee.sync import TimesheetSync
-from timesheet_ccee.workbook import TimesheetWorkbook
+from timesheet_ccee.workbook import DATA_SHEET, TimesheetWorkbook
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class TimesheetSyncTests(unittest.TestCase):
+    def test_exports_empty_number_as_null_cell(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workbook_path = Path(temporary_directory) / "timesheet.xlsx"
+            shutil.copy2(
+                PROJECT_ROOT / "Modelo_Timesheet_CCEE.template.xlsx",
+                workbook_path,
+            )
+            workbook = TimesheetWorkbook(workbook_path)
+
+            workbook.save_all(
+                [
+                    (
+                        date(2099, 1, 2),
+                        TimeEntry("01:00", "Sustentação", "CSTM", "   "),
+                    )
+                ]
+            )
+
+            saved_workbook = load_workbook(workbook_path, data_only=True)
+            try:
+                self.assertIsNone(saved_workbook[DATA_SHEET].cell(2, 5).value)
+            finally:
+                saved_workbook.close()
+
     def test_first_use_imports_and_later_sync_exports_database(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)

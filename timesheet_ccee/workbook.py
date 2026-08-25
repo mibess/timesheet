@@ -50,7 +50,7 @@ class _Record:
     hours_fraction: float
     activity_type: str
     ticket: str
-    number: str | int
+    number: str | int | None
     observation: str
     phase: str
     order: int
@@ -67,8 +67,12 @@ def _unique_text(values: Iterable[object]) -> list[str]:
     return result
 
 
-def _number_for_excel(value: str) -> str | int:
-    text = value.strip()
+def _number_for_excel(value: str | int | None) -> str | int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
     return int(text) if text.isdigit() else text
 
 
@@ -519,7 +523,7 @@ class TimesheetWorkbook:
                         / 1440,
                         activity_type=str(sheet.cell(row, 3).value or ""),
                         ticket=str(sheet.cell(row, 4).value or ""),
-                        number="" if number_value is None else number_value,
+                        number=_number_for_excel(number_value),
                         observation=str(sheet.cell(row, 6).value or ""),
                         phase=str(sheet.cell(row, 7).value or ""),
                         order=order,
